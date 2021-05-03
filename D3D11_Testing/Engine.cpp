@@ -1,6 +1,6 @@
 #include "Engine.h"
 
-Engine::Engine(HINSTANCE hInstance, PWSTR name, int nCmdShow):
+Engine::Engine(HINSTANCE hInstance, LPCWSTR name, int nCmdShow):
     hInstance(hInstance), name(name), show(nCmdShow)
 {
 

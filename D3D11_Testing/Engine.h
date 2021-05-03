@@ -8,7 +8,7 @@
 class Engine
 {
 public:
-	Engine(HINSTANCE hInstance, LPWSTR pCmdLine, int nCmdShow);
+	Engine(HINSTANCE hInstance, LPCWSTR pCmdLine, int nCmdShow);
 	~Engine();
 
 	void Run();
