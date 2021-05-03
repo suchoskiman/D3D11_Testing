@@ -1,8 +1,11 @@
 #pragma once
+#define WIN32_LEAN_AND_MEAN
 
 // System Includes
 #include <windows.h>
 #include <wrl.h>
+#include <combaseapi.h>
+#include <timeapi.h>
 
 // DirectX includes
 #include <d3d11.h>
@@ -13,6 +16,7 @@
 // STL includes
 #include <iostream>
 #include <string>
+#include <exception>
 
 // Linking libraries
 #pragma comment(lib, "d3d11.lib")

@@ -1,28 +1,9 @@
 #include "Engine.h"
 
-Engine::Engine(HINSTANCE hInstance, PWSTR name, int nCmdShow)
+Engine::Engine(HINSTANCE hInstance, PWSTR name, int nCmdShow):
+    hInstance(hInstance), name(name), show(nCmdShow)
 {
-    WNDCLASSEX wndClass = { 0 };
-    wndClass.cbSize = sizeof(WNDCLASSEX);
-    wndClass.style = CS_HREDRAW | CS_VREDRAW;
-    wndClass.lpfnWndProc = WindowProc;
-    wndClass.hInstance = hInstance;
-    wndClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
-    wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wndClass.lpszMenuName = nullptr;
-    wndClass.lpszClassName = name;
 
-    RECT windowRect = { 0, 0, g_WindowWidth, g_WindowHeight };
-    AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-    g_WindowHandle = CreateWindow(name, name,
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-        windowRect.right - windowRect.left,
-        windowRect.bottom - windowRect.top,
-        nullptr, nullptr, hInstance, nullptr);
-
-    ShowWindow(g_WindowHandle, nCmdShow);
-    UpdateWindow(g_WindowHandle);
 }
 
 Engine::~Engine()
@@ -32,6 +13,7 @@ Engine::~Engine()
 
 void Engine::Run()
 {
+    InitEngine(hInstance, g_EnableVSync);
     MSG msg = { 0 };
 
     static DWORD previousTime = timeGetTime();
@@ -45,22 +27,20 @@ void Engine::Run()
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        else
-        {
-            DWORD currentTime = timeGetTime();
-            float deltaTime = (currentTime - previousTime) / 1000.0f;
-            previousTime = currentTime;
+        DWORD currentTime = timeGetTime();
+        float deltaTime = (currentTime - previousTime) / 1000.0f;
+        previousTime = currentTime;
 
-            // Cap the delta time to the max time step (useful if your 
-            // debugging and you don't want the deltaTime value to explode.
-            deltaTime = std::min<float>(deltaTime, maxTimeStep);
+        // Cap the delta time to the max time step (useful if your 
+        // debugging and you don't want the deltaTime value to explode.
+        deltaTime = std::min<float>(deltaTime, maxTimeStep);
 
-            Update(deltaTime);
-        }
+        Update(deltaTime);
+        Render();
     }
 }
 
-LRESULT Engine::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT Engine::WindowProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam)
 {
     PAINTSTRUCT paintStruct;
     HDC hDC;
@@ -68,87 +48,66 @@ LRESULT Engine::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     switch (uMsg)
     {
     case WM_PAINT:
-        {
+    {
         hDC = BeginPaint(hwnd, &paintStruct);
         EndPaint(hwnd, &paintStruct);
-        }
+    }
     break;
     case WM_DESTROY:
-        {
+    {
         PostQuitMessage(0);
-        }
+    }
     break;
+    default:
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    return 0;
 }
 
-void Engine::InitDirectX(HINSTANCE hInstance, BOOL vSync)
+void Engine::InitEngine(HINSTANCE hInstance, BOOL vSync)
 {
-    using namespace Microsoft::WRL;
+    // create and show window
+    WNDCLASSEX wndClass = { 0 };
+    wndClass.cbSize = sizeof(WNDCLASSEX);
+    wndClass.style = CS_HREDRAW | CS_VREDRAW;
+    wndClass.lpfnWndProc = &WindowProc;
+    wndClass.hInstance = hInstance;
+    wndClass.hCursor = NULL;
+    wndClass.hIcon = NULL;
+    wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wndClass.lpszMenuName = L"Testing";
+    wndClass.lpszClassName = name;
 
-    // A window handle must have been created already.
-    assert(g_WindowHandle != 0);
-
-    RECT clientRect;
-    GetClientRect(g_WindowHandle, &clientRect);
-
-    // Compute the exact client dimensions. This will be used
-    // to initialize the render targets for our swap chain.
-    unsigned int clientWidth = clientRect.right - clientRect.left;
-    unsigned int clientHeight = clientRect.bottom - clientRect.top;
-
-    DXGI_SWAP_CHAIN_DESC swapChainDesc;
-    ZeroMemory(&swapChainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
-
-    swapChainDesc.BufferCount = 1;
-    swapChainDesc.BufferDesc.Width = clientWidth;
-    swapChainDesc.BufferDesc.Height = clientHeight;
-    swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    swapChainDesc.BufferDesc.RefreshRate = { 0, 1 };
-    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    swapChainDesc.OutputWindow = g_WindowHandle;
-    swapChainDesc.SampleDesc.Count = 1;
-    swapChainDesc.SampleDesc.Quality = 0;
-    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-    swapChainDesc.Windowed = TRUE;
-
-    UINT createDeviceFlags = 0;
-#ifdef _DEBUG
-    createDeviceFlags = D3D11_CREATE_DEVICE_DEBUG;
-#endif
-
-    // These are the feature levels that we will accept.
-    D3D_FEATURE_LEVEL featureLevels[] =
+    if (!RegisterClassEx(&wndClass))
     {
-        D3D_FEATURE_LEVEL_11_1,
-        D3D_FEATURE_LEVEL_11_0,
-        D3D_FEATURE_LEVEL_10_1,
-        D3D_FEATURE_LEVEL_10_0,
-        D3D_FEATURE_LEVEL_9_3,
-        D3D_FEATURE_LEVEL_9_2,
-        D3D_FEATURE_LEVEL_9_1
-    };
-
-    // This will be the feature level that 
-    // is used to create our device and swap chain.
-    D3D_FEATURE_LEVEL featureLevel;
-
-    HRESULT hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE,
-        nullptr, createDeviceFlags, featureLevels, _countof(featureLevels),
-        D3D11_SDK_VERSION, &swapChainDesc, &g_d3dSwapChain, &g_d3dDevice, &featureLevel,
-        &g_d3dDeviceContext);
-
-    if (hr == E_INVALIDARG)
-    {
-        hr = D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE,
-            nullptr, createDeviceFlags, &featureLevels[1], _countof(featureLevels) - 1,
-            D3D11_SDK_VERSION, &swapChainDesc, &g_d3dSwapChain, &g_d3dDevice, &featureLevel,
-            &g_d3dDeviceContext);
+        return;
     }
+
+    RECT windowRect = { 0, 0, g_WindowWidth, g_WindowHeight };
+    AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
+
+    g_WindowHandle = CreateWindow(name, L"Testing",
+        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+        windowRect.right - windowRect.left,
+        windowRect.bottom - windowRect.top,
+        nullptr, nullptr, hInstance, nullptr);
+
+    if (!g_WindowHandle)
+    {
+        return;
+    }
+
+    ShowWindow(g_WindowHandle, show);
+    UpdateWindow(g_WindowHandle);
 }
 
 void Engine::Update(float deltaTime)
+{
+    return;
+}
+
+void Engine::Render()
 {
     return;
 }
