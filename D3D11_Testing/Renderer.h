@@ -1,26 +1,23 @@
 #pragma once
 
 #include "testing.h"
+#include "Layout.h"
 #include "Mesh.h"
 #include "Camera.h"
 
-using namespace Microsoft::WRL;
-using namespace DirectX;
+// forward declaration
+class Mesh;
 
 class Renderer
 {
 public:
-	struct Vertex
-	{
-		XMFLOAT3 position;
-		XMFLOAT3 color;
-	};
-
 	Renderer();
 	~Renderer();
 
-	int InitRenderer();
-	void Draw(Mesh<Vertex> mesh, Camera camera);
+	int InitRenderer(HWND handle);
+
+	void Draw(Mesh& mesh, Camera& camera);
+	void Present();
 private:
 	// devices
 	ComPtr<ID3D11Device> m_Device;
@@ -28,7 +25,7 @@ private:
 	
 	// backbuffer and rtv
 	ComPtr<IDXGISwapChain> m_SwapChain;
-	ComPtr<ID3D11RenderTargetView> M_RenderTargetView;
+	ComPtr<ID3D11RenderTargetView> m_RenderTargetView;
 
 	// depth stencil
 	ComPtr<ID3D11DepthStencilView> m_DepthStencilView;
@@ -38,9 +35,20 @@ private:
 	// shaders
 	ComPtr<ID3D11VertexShader> m_VertexShader;
 	ComPtr<ID3D11PixelShader> m_PixelShader;
-
+	
 	// ancillary structures
+	ComPtr<ID3D11InputLayout> m_InputLayout;
 	ComPtr<ID3D11RasterizerState> m_Rasterizer;
 	D3D11_VIEWPORT m_Viewport;
+
+	// constant buffer stuff
+	enum ConstantBuffer
+	{
+		CBProjection,
+		CBView,
+		CBModel,
+		CBNumBuffers
+	};
+	ID3D11Buffer* m_ConstantBuffer[CBNumBuffers];
 };
 

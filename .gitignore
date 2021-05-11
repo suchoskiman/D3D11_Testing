@@ -72,6 +72,7 @@ StyleCopReport.xml
 *_i.c
 *_p.c
 *_h.h
+*.cso
 *.ilk
 *.meta
 *.obj
@@ -96,6 +97,7 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
+*.exe
 
 # Chutzpah Test files
 _Chutzpah*

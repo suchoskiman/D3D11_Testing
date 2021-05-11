@@ -2,9 +2,6 @@
 
 #include "testing.h"
 
-using namespace Microsoft::WRL;
-using namespace DirectX;
-
 class Camera
 {
 public:
@@ -20,8 +17,8 @@ public:
 	XMFLOAT3 GetUpDirection();
 	void SetUpDirection(XMFLOAT3 newUpDirection);
 
-	XMMATRIX GetCameraTransform();
-	XMMATRIX GetCameraTransformInverse();
+	XMFLOAT4X4 GetViewMatrix();
+	XMFLOAT4X4 GetViewMatrixInverse();
 
 private:
 	XMFLOAT3 m_Position;

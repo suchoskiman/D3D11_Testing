@@ -24,21 +24,16 @@ private:
 	LPCWSTR name;
 	int show;
 
-	LONG g_WindowWidth = 1280;
-	LONG g_WindowHeight = 720;
-	HWND g_WindowHandle = 0;
+	LONG m_WindowWidth = 1280;
+	LONG m_WindowHeight = 720;
+	HWND m_WindowHandle = 0;
 
-	const BOOL g_EnableVSync = false;
+	const BOOL m_EnableVSync = false;
 
-	// Shader resources
-	enum ConstantBuffer
-	{
-		CB_Application,
-		CB_Frame,
-		CB_Object,
-		NumConstantBuffers
-	};
+	Renderer* m_Renderer;
+	std::vector<Mesh> m_Meshes;
 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> g_d3dConstantBuffers[NumConstantBuffers];
+	Camera m_Camera{ {0.0f, 0.0f, -5.0f}, {0.0f, 0.0f, 0.0f} };
+	XMFLOAT4X4 m_Projection;
 };
 

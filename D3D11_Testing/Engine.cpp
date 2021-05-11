@@ -1,9 +1,21 @@
 #include "Engine.h"
 
 Engine::Engine(HINSTANCE hInstance, LPCWSTR name, int nCmdShow):
-    hInstance(hInstance), name(name), show(nCmdShow)
+    hInstance(hInstance), name(name), show(nCmdShow), m_Renderer(new Renderer())
 {
-
+    /*Vertex vertices[4] =
+    {
+        { {-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f} },   // 0
+        { {0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 0.0f} },    // 1
+        { {-0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f} },    // 2
+        { {0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f} }      // 3
+    };
+    WORD indices[6] =
+    {
+        0, 3, 1,
+        0, 2, 3
+    };*/
+    m_Meshes.push_back(Mesh::CreateCube({ 1.0f, 0.0f, 0.0f }));
 }
 
 Engine::~Engine()
@@ -13,7 +25,8 @@ Engine::~Engine()
 
 void Engine::Run()
 {
-    InitEngine(hInstance, g_EnableVSync);
+    InitEngine(hInstance, m_EnableVSync);
+    if (m_Renderer->InitRenderer(m_WindowHandle)) return;
     MSG msg = { 0 };
 
     static DWORD previousTime = timeGetTime();
@@ -76,7 +89,7 @@ void Engine::InitEngine(HINSTANCE hInstance, BOOL vSync)
     wndClass.hCursor = NULL;
     wndClass.hIcon = NULL;
     wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wndClass.lpszMenuName = L"Testing";
+    wndClass.lpszMenuName = name;
     wndClass.lpszClassName = name;
 
     if (!RegisterClassEx(&wndClass))
@@ -84,30 +97,38 @@ void Engine::InitEngine(HINSTANCE hInstance, BOOL vSync)
         return;
     }
 
-    RECT windowRect = { 0, 0, g_WindowWidth, g_WindowHeight };
+    RECT windowRect = { 0, 0, m_WindowWidth, m_WindowHeight };
     AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
-    g_WindowHandle = CreateWindow(name, L"Testing",
+    m_WindowHandle = CreateWindow(name, name,
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
         windowRect.right - windowRect.left,
         windowRect.bottom - windowRect.top,
         nullptr, nullptr, hInstance, nullptr);
 
-    if (!g_WindowHandle)
+    if (!m_WindowHandle)
     {
         return;
     }
 
-    ShowWindow(g_WindowHandle, show);
-    UpdateWindow(g_WindowHandle);
+    ShowWindow(m_WindowHandle, show);
+    UpdateWindow(m_WindowHandle);
 }
 
 void Engine::Update(float deltaTime)
 {
+    for (auto& x : m_Meshes)
+    {
+        x.Rotate(XMMatrixRotationRollPitchYaw(0.5f * deltaTime, 0.5f * deltaTime, 0.5f * deltaTime));
+    }
     return;
 }
 
 void Engine::Render()
 {
-    return;
+    for (auto& x : m_Meshes)
+    {
+        m_Renderer->Draw(x, m_Camera);
+    }
+    m_Renderer->Present();
 }
